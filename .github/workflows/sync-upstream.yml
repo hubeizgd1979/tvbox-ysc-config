@@ -1,0 +1,31 @@
+name: 自动同步上游 tvbox-ysc-config
+
+on:
+  schedule:
+    # 每 4 小时检查上游是否有新提交（cron 为 UTC 时间）
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 同步 fork 与上游
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MSG=$(gh api -X POST "repos/${{ github.repository }}/merge-upstream" -f branch=main --jq '.message' 2>&1) || true
+          echo "$MSG"
+          {
+            echo "### 同步结果"
+            echo '```'
+            echo "$MSG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
